@@ -1,6 +1,12 @@
 
 pipeline {
+
     agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+        BUILD_VERSION = '1.0'
+    }
 
     stages {
 
@@ -8,6 +14,16 @@ pipeline {
             steps {
                 echo 'Checking out source code'
                 checkout scm
+            }
+        }
+
+        stage('Application Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Version: ${BUILD_VERSION}"
+
+                sh 'pwd'
+                sh 'ls -la'
             }
         }
 
@@ -24,13 +40,13 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Testing application'
+                echo 'Running tests'
 
                 sh '''
                     test -f build/index.html
                     grep -q "Hello from GitHub and Jenkins!" build/index.html
 
-                    echo "All tests passed!"
+                    echo "Tests passed!"
                 '''
             }
         }
@@ -44,12 +60,17 @@ pipeline {
     }
 
     post {
+
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'SUCCESS: Application pipeline completed!'
         }
 
         failure {
-            echo 'CI Pipeline failed!'
+            echo 'FAILURE: Application pipeline failed!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
         }
     }
 }
