@@ -8,6 +8,14 @@ pipeline {
         BUILD_VERSION = '1.0'
     }
 
+    parameters {
+        choice(
+            name: 'BUILD_MODE',
+            choices: ['NORMAL', 'DIAGNOSTIC'],
+            description: 'Select application build mode'
+        )
+    }
+
     stages {
 
         stage('Checkout') {
@@ -21,9 +29,36 @@ pipeline {
             steps {
                 echo "Application: ${APP_NAME}"
                 echo "Version: ${BUILD_VERSION}"
+                echo "Build Mode: ${params.BUILD_MODE}"
 
                 sh 'pwd'
                 sh 'ls -la'
+            }
+        }
+
+        stage('Build Information') {
+            when {
+                expression {
+                    params.BUILD_MODE == 'DIAGNOSTIC'
+                }
+            }
+
+            steps {
+                echo 'Running diagnostic information'
+
+                sh '''
+                    echo "Current user:"
+                    whoami
+
+                    echo "Current directory:"
+                    pwd
+
+                    echo "Available disk space:"
+                    df -h
+
+                    echo "Workspace files:"
+                    ls -la
+                '''
             }
         }
 
@@ -44,6 +79,7 @@ pipeline {
 
                 sh '''
                     test -f build/index.html
+
                     grep -q "Hello from GitHub and Jenkins!" build/index.html
 
                     echo "Tests passed!"
