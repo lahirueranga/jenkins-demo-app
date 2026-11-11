@@ -81,17 +81,47 @@ pipeline {
                     }
                 }
 
-                stage('Test') {
-                    steps {
-                        echo 'Running tests'
+                stage('Parallel Tests') {
 
-                        sh '''
-                            test -f build/index.html
+                    parallel {
 
-                            grep -q "Hello from GitHub and Jenkins!" build/index.html
+                        stage('HTML File Test') {
+                            steps {
+                                echo 'Checking HTML file'
 
-                            echo "Tests passed!"
-                        '''
+                                sh '''
+                                    test -f build/index.html
+
+                                    echo "HTML file exists!"
+                                '''
+                            }
+                        }
+
+                        stage('Content Test') {
+                            steps {
+                                echo 'Checking application content'
+
+                                sh '''
+                                    grep -q "Hello from GitHub and Jenkins!" build/index.html
+
+                                    echo "Application content verified!"
+                                '''
+                            }
+                        }
+
+                        stage('Artifact Size Test') {
+                            steps {
+                                echo 'Checking artifact size'
+
+                                sh '''
+                                    test -s build/index.html
+
+                                    echo "Artifact is not empty!"
+
+                                    wc -c build/index.html
+                                '''
+                            }
+                        }
                     }
                 }
 
