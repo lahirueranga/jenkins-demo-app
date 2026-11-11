@@ -55,16 +55,9 @@ pipeline {
                         echo 'Running diagnostic information'
 
                         sh '''
-                            echo "Current user:"
                             whoami
-
-                            echo "Current directory:"
                             pwd
-
-                            echo "Available disk space:"
                             df -h
-
-                            echo "Workspace files:"
                             ls -la
                         '''
                     }
@@ -82,60 +75,102 @@ pipeline {
                 }
 
                 stage('Parallel Tests') {
-
                     parallel {
 
                         stage('HTML File Test') {
                             steps {
-                                echo 'Checking HTML file'
-
-                                sh '''
-                                    test -f build/index.html
-
-                                    echo "HTML file exists!"
-                                '''
+                                sh 'test -f build/index.html'
+                                echo 'HTML file exists!'
                             }
                         }
 
                         stage('Content Test') {
                             steps {
-                                echo 'Checking application content'
-
                                 sh '''
                                     grep -q "Hello from GitHub and Jenkins!" build/index.html
-
-                                    echo "Application content verified!"
                                 '''
+                                echo 'Application content verified!'
                             }
                         }
 
                         stage('Artifact Size Test') {
                             steps {
-                                echo 'Checking artifact size'
-
                                 sh '''
                                     test -s build/index.html
-
-                                    echo "Artifact is not empty!"
-
                                     wc -c build/index.html
                                 '''
+                                echo 'Artifact is not empty!'
                             }
                         }
                     }
                 }
-                
+
                 stage('Optional Quality Check') {
                     steps {
+
                         catchError(
                             buildResult: 'UNSTABLE',
                             stageResult: 'FAILURE'
-                            ) {
-                                echo 'Running optional quality check'
-                                sh 'exit 1'
-                            }
+                        ) {
+
+                            echo 'Running optional quality check'
+
+                            sh 'exit 1'
+                        }
                     }
                 }
+
+                stage('Recovery and Reliability') {
+
+                    steps {
+
+                        script {
+
+                            echo 'Starting error handling demonstration'
+
+                            try {
+
+                                echo 'Executing an operation'
+
+                                sh 'exit 1'
+
+                            } catch (Exception e) {
+
+                                echo "Caught exception: ${e.getMessage()}"
+
+                            }
+
+                            try {
+
+                                error 'Demonstration error'
+
+                            } catch (Exception e) {
+
+                                echo "Handled Jenkins error: ${e.getMessage()}"
+
+                            }
+                        }
+
+                        retry(3) {
+
+                            echo 'Executing retry demonstration'
+
+                            sh 'echo "Retry operation completed successfully"'
+
+                        }
+
+                        timeout(time: 10, unit: 'SECONDS') {
+
+                            echo 'Starting timed operation'
+
+                            sh 'sleep 3'
+
+                            echo 'Timed operation completed'
+
+                        }
+                    }
+                }
+
                 stage('Archive Artifacts') {
                     steps {
                         archiveArtifacts artifacts: 'build/**',
@@ -150,6 +185,10 @@ pipeline {
 
         success {
             echo 'SUCCESS: Application pipeline completed!'
+        }
+
+        unstable {
+            echo 'UNSTABLE: Pipeline completed with warnings!'
         }
 
         failure {
