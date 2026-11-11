@@ -124,7 +124,18 @@ pipeline {
                         }
                     }
                 }
-
+                
+                stage('Optional Quality Check') {
+                    steps {
+                        catchError(
+                            buildResult: 'UNSTABLE',
+                            stageResult: 'FAILURE'
+                            ) {
+                                echo 'Running optional quality check'
+                                sh 'exit 1'
+                            }
+                    }
+                }
                 stage('Archive Artifacts') {
                     steps {
                         archiveArtifacts artifacts: 'build/**',
