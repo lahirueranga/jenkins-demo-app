@@ -1,7 +1,7 @@
 
 pipeline {
 
-    agent any
+    agent none
 
     environment {
         APP_NAME = 'jenkins-demo-app'
@@ -18,79 +18,89 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                echo 'Checking out source code'
-                checkout scm
+        stage('Application CI') {
+
+            agent {
+                label 'linux-lab'
             }
-        }
 
-        stage('Application Information') {
-            steps {
-                echo "Application: ${APP_NAME}"
-                echo "Version: ${BUILD_VERSION}"
-                echo "Build Mode: ${params.BUILD_MODE}"
+            stages {
 
-                sh 'pwd'
-                sh 'ls -la'
-            }
-        }
-
-        stage('Build Information') {
-            when {
-                expression {
-                    params.BUILD_MODE == 'DIAGNOSTIC'
+                stage('Checkout') {
+                    steps {
+                        echo 'Checking out source code'
+                        checkout scm
+                    }
                 }
-            }
 
-            steps {
-                echo 'Running diagnostic information'
+                stage('Application Information') {
+                    steps {
+                        echo "Application: ${APP_NAME}"
+                        echo "Version: ${BUILD_VERSION}"
+                        echo "Build Mode: ${params.BUILD_MODE}"
 
-                sh '''
-                    echo "Current user:"
-                    whoami
+                        sh 'pwd'
+                        sh 'ls -la'
+                    }
+                }
 
-                    echo "Current directory:"
-                    pwd
+                stage('Build Information') {
+                    when {
+                        expression {
+                            params.BUILD_MODE == 'DIAGNOSTIC'
+                        }
+                    }
 
-                    echo "Available disk space:"
-                    df -h
+                    steps {
+                        echo 'Running diagnostic information'
 
-                    echo "Workspace files:"
-                    ls -la
-                '''
-            }
-        }
+                        sh '''
+                            echo "Current user:"
+                            whoami
 
-        stage('Build') {
-            steps {
-                echo 'Building application'
+                            echo "Current directory:"
+                            pwd
 
-                sh '''
-                    chmod +x build.sh
-                    ./build.sh
-                '''
-            }
-        }
+                            echo "Available disk space:"
+                            df -h
 
-        stage('Test') {
-            steps {
-                echo 'Running tests'
+                            echo "Workspace files:"
+                            ls -la
+                        '''
+                    }
+                }
 
-                sh '''
-                    test -f build/index.html
+                stage('Build') {
+                    steps {
+                        echo 'Building application'
 
-                    grep -q "Hello from GitHub and Jenkins!" build/index.html
+                        sh '''
+                            chmod +x build.sh
+                            ./build.sh
+                        '''
+                    }
+                }
 
-                    echo "Tests passed!"
-                '''
-            }
-        }
+                stage('Test') {
+                    steps {
+                        echo 'Running tests'
 
-        stage('Archive Artifacts') {
-            steps {
-                archiveArtifacts artifacts: 'build/**',
-                                 fingerprint: true
+                        sh '''
+                            test -f build/index.html
+
+                            grep -q "Hello from GitHub and Jenkins!" build/index.html
+
+                            echo "Tests passed!"
+                        '''
+                    }
+                }
+
+                stage('Archive Artifacts') {
+                    steps {
+                        archiveArtifacts artifacts: 'build/**',
+                                         fingerprint: true
+                    }
+                }
             }
         }
     }
