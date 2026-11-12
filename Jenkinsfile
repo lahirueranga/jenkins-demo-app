@@ -43,6 +43,51 @@ pipeline {
                         sh 'ls -la'
                     }
                 }
+
+                stage('Credentials Test') {
+                    steps {
+                        echo 'Testing Jenkins credentials integration'
+                        withCredentials([
+                            string(
+                                credentialsId: 'learning-secret',
+                                variable: 'MY_SECRET'
+                                )
+                                ]) {
+                            sh '''
+                                if [ -n "$MY_SECRET" ]; then
+                                    echo "SUCCESS: Jenkins credential is available"
+                                else
+                                    echo "FAILURE: Jenkins credential is empty"
+                                    exit 1
+                                fi
+                            '''
+                        }
+                        withCredentials([
+    usernamePassword(
+        credentialsId: 'learning-userpass',
+        usernameVariable: 'TEST_USERNAME',
+        passwordVariable: 'TEST_PASSWORD'
+    )
+]) {
+
+    sh '''
+        if [ -n "$TEST_USERNAME" ] &&
+           [ -n "$TEST_PASSWORD" ]; then
+
+            echo "Username credential is available"
+
+        else
+
+            echo "Credential is missing"
+            exit 1
+
+        fi
+    '''
+
+}
+                    }
+                }
+
                 stage('Pipeline Information') {
                     steps {
                         echo "Build Number: ${BUILD_NUMBER}"
@@ -93,26 +138,6 @@ pipeline {
                     }
                 }
                 
-                stage('Credentials Test') {
-                    steps {
-                        echo 'Testing Jenkins credentials integration'
-                        withCredentials([
-                            string(
-                                credentialsId: 'learning-secret',
-                                variable: 'MY_SECRET'
-                                )
-                                ]) {
-                            sh '''
-                                if [ -n "$MY_SECRET" ]; then
-                                    echo "SUCCESS: Jenkins credential is available"
-                                else
-                                    echo "FAILURE: Jenkins credential is empty"
-                                    exit 1
-                                fi
-                            '''
-                        }
-                    }
-                }
                 stage('Parallel Tests') {
                     parallel {
 
