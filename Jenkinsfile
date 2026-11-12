@@ -255,20 +255,22 @@ stage('Username Password Credentials Test') {
 
     post {
 
-        success {
-            echo 'SUCCESS: Application pipeline completed!'
-        }
-
-        unstable {
-            echo 'UNSTABLE: Pipeline completed with warnings!'
-        }
-
-        failure {
-            echo 'FAILURE: Application pipeline failed!'
-        }
-
-        always {
-            echo 'Pipeline execution finished.'
-        }
+    success {
+        echo 'SUCCESS: Pipeline completed!'
     }
+
+    failure {
+        echo 'FAILURE: Pipeline failed!'
+    }
+
+    always {
+        echo 'Pipeline execution finished.'
+
+        echo 'Cleaning Jenkins workspace...'
+
+        cleanWs()
+
+        echo 'Workspace cleanup completed!'
+    }
+}
 }
