@@ -8,95 +8,194 @@ pipeline {
         BUILD_VERSION = '1.0'
     }
 
+    parameters {
+        choice(
+            name: 'BUILD_MODE',
+            choices: ['NORMAL', 'DIAGNOSTIC'],
+            description: 'Select application build mode'
+        )
+    }
+
     stages {
 
-        stage('Checkout') {
+        stage('Application CI') {
 
-            agent any
-
-            steps {
-                echo 'Checking out source code'
-                checkout scm
+            agent {
+                label 'linux-lab'
             }
-        }
 
-        stage('Application Information') {
+            stages {
 
-            agent any
+                stage('Checkout') {
+                    steps {
+                        echo 'Checking out source code'
+                        checkout scm
+                    }
+                }
 
-            steps {
-                echo "Application: ${APP_NAME}"
-                echo "Version: ${BUILD_VERSION}"
+                stage('Application Information') {
+                    steps {
+                        echo "Application: ${APP_NAME}"
+                        echo "Version: ${BUILD_VERSION}"
+                        echo "Build Mode: ${params.BUILD_MODE}"
 
-                sh 'pwd'
-                sh 'ls -la'
-            }
-        }
+                        sh 'pwd'
+                        sh 'ls -la'
+                    }
+                }
+                stage('Pipeline Information') {
+                    steps {
+                        echo "Build Number: ${BUILD_NUMBER}"
+                        echo "Job Name: ${JOB_NAME}"
+                        echo "Workspace: ${WORKSPACE}"
+                        echo "Build URL: ${BUILD_URL}"
+                        }
+                }
 
-        stage('Pipeline Information') {
+                stage('Agent Information') {
+                    steps {
+                        echo "Node Name: ${NODE_NAME}"
+                        echo "Executor Number: ${EXECUTOR_NUMBER}"
+                        
+                        sh 'uname -a'
+                        sh 'whoami'
+                        sh 'pwd'
+                        }
+                }
 
-            agent any
+                stage('Build Information') {
+                    when {
+                        expression {
+                            params.BUILD_MODE == 'DIAGNOSTIC'
+                        }
+                    }
 
-            steps {
-                echo "Build Number: ${BUILD_NUMBER}"
-                echo "Job Name: ${JOB_NAME}"
-                echo "Workspace: ${WORKSPACE}"
-                echo "Build URL: ${BUILD_URL}"
-            }
-        }
+                    steps {
+                        echo 'Running diagnostic information'
 
-        stage('Agent Information') {
+                        sh '''
+                            whoami
+                            pwd
+                            df -h
+                            ls -la
+                        '''
+                    }
+                }
 
-            agent any
+                stage('Build') {
+                    steps {
+                        echo 'Building application'
 
-            steps {
-                echo "Node Name: ${NODE_NAME}"
-                echo "Executor Number: ${EXECUTOR_NUMBER}"
+                        sh '''
+                            chmod +x build.sh
+                            ./build.sh
+                        '''
+                    }
+                }
 
-                sh 'uname -a'
-                sh 'whoami'
-                sh 'pwd'
-            }
-        }
+                stage('Parallel Tests') {
+                    parallel {
 
-        stage('Build') {
+                        stage('HTML File Test') {
+                            steps {
+                                sh 'test -f build/index.html'
+                                echo 'HTML file exists!'
+                            }
+                        }
 
-            agent any
+                        stage('Content Test') {
+                            steps {
+                                sh '''
+                                    grep -q "Hello from GitHub and Jenkins!" build/index.html
+                                '''
+                                echo 'Application content verified!'
+                            }
+                        }
 
-            steps {
-                echo 'Building application'
+                        stage('Artifact Size Test') {
+                            steps {
+                                sh '''
+                                    test -s build/index.html
+                                    wc -c build/index.html
+                                '''
+                                echo 'Artifact is not empty!'
+                            }
+                        }
+                    }
+                }
 
-                sh '''
-                    chmod +x build.sh
-                    ./build.sh
-                '''
-            }
-        }
+                stage('Optional Quality Check') {
+                    steps {
 
-        stage('Test') {
+                        catchError(
+                            buildResult: 'UNSTABLE',
+                            stageResult: 'FAILURE'
+                        ) {
 
-            agent any
+                            echo 'Running optional quality check'
 
-            steps {
-                echo 'Running application tests'
+                            sh 'exit 1'
+                        }
+                    }
+                }
 
-                sh '''
-                    test -f build/index.html
+                stage('Recovery and Reliability') {
 
-                    grep -q "Hello from GitHub and Jenkins!" build/index.html
+                    steps {
 
-                    echo "Tests passed!"
-                '''
-            }
-        }
+                        script {
 
-        stage('Archive Artifacts') {
+                            echo 'Starting error handling demonstration'
 
-            agent any
+                            try {
 
-            steps {
-                archiveArtifacts artifacts: 'build/**',
-                                 fingerprint: true
+                                echo 'Executing an operation'
+
+                                sh 'exit 1'
+
+                            } catch (Exception e) {
+
+                                echo "Caught exception: ${e.getMessage()}"
+
+                            }
+
+                            try {
+
+                                error 'Demonstration error'
+
+                            } catch (Exception e) {
+
+                                echo "Handled Jenkins error: ${e.getMessage()}"
+
+                            }
+                        }
+
+                        retry(3) {
+
+                            echo 'Executing retry demonstration'
+
+                            sh 'echo "Retry operation completed successfully"'
+
+                        }
+
+                        timeout(time: 10, unit: 'SECONDS') {
+
+                            echo 'Starting timed operation'
+
+                            sh 'sleep 3'
+
+                            echo 'Timed operation completed'
+
+                        }
+                    }
+                }
+
+                stage('Archive Artifacts') {
+                    steps {
+                        archiveArtifacts artifacts: 'build/**',
+                                         fingerprint: true
+                    }
+                }
             }
         }
     }
@@ -105,6 +204,10 @@ pipeline {
 
         success {
             echo 'SUCCESS: Application pipeline completed!'
+        }
+
+        unstable {
+            echo 'UNSTABLE: Pipeline completed with warnings!'
         }
 
         failure {
