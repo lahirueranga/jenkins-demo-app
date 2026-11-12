@@ -92,7 +92,27 @@ pipeline {
                         '''
                     }
                 }
-
+                
+                stage('Credentials Test') {
+                    steps {
+                        echo 'Testing Jenkins credentials integration'
+                        withCredentials([
+                            string(
+                                credentialsId: 'learning-secret',
+                                variable: 'MY_SECRET'
+                                )
+                                ]) {
+                            sh '''
+                                if [ -n "$MY_SECRET" ]; then
+                                    echo "SUCCESS: Jenkins credential is available"
+                                else
+                                    echo "FAILURE: Jenkins credential is empty"
+                                    exit 1
+                                fi
+                            '''
+                        }
+                    }
+                }
                 stage('Parallel Tests') {
                     parallel {
 
