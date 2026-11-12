@@ -62,32 +62,40 @@ pipeline {
                                 fi
                             '''
                         }
-                        withCredentials([
-    usernamePassword(
-        credentialsId: 'learning-userpass',
-        usernameVariable: 'TEST_USERNAME',
-        passwordVariable: 'TEST_PASSWORD'
-    )
-]) {
-
-    sh '''
-        if [ -n "$TEST_USERNAME" ] &&
-           [ -n "$TEST_PASSWORD" ]; then
-
-            echo "Username credential is available"
-
-        else
-
-            echo "Credential is missing"
-            exit 1
-
-        fi
-    '''
-
-}
                     }
                 }
+stage('Username Password Credentials Test') {
 
+    steps {
+
+        echo 'Testing username/password credentials'
+
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'learning-userpass',
+                usernameVariable: 'TEST_USERNAME',
+                passwordVariable: 'TEST_PASSWORD'
+            )
+        ]) {
+
+            sh '''
+                if [ -n "$TEST_USERNAME" ] &&
+                   [ -n "$TEST_PASSWORD" ]; then
+
+                    echo "SUCCESS: Username is available"
+                    echo "SUCCESS: Password is available"
+
+                else
+
+                    echo "FAILURE: Credentials are missing"
+                    exit 1
+
+                fi
+            '''
+
+        }
+    }
+}
                 stage('Pipeline Information') {
                     steps {
                         echo "Build Number: ${BUILD_NUMBER}"
