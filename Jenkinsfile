@@ -266,11 +266,14 @@ stage('Username Password Credentials Test') {
     always {
         echo 'Pipeline execution finished.'
 
-        echo 'Cleaning Jenkins workspace...'
+        
+        node('linux-lab') {
+            echo 'Cleaning Jenkins workspace...'
 
-        cleanWs()
+            cleanWs()
 
-        echo 'Workspace cleanup completed!'
+            echo 'Workspace cleanup completed!'
+        }
     }
 }
 }
