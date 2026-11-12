@@ -52,6 +52,17 @@ pipeline {
                         }
                 }
 
+                stage('Agent Information') {
+                    steps {
+                        echo "Node Name: ${NODE_NAME}"
+                        echo "Executor Number: ${EXECUTOR_NUMBER}"
+                        
+                        sh 'uname -a'
+                        sh 'whoami'
+                        sh 'pwd'
+                    }
+                }
+
                 stage('Build Information') {
                     when {
                         expression {
