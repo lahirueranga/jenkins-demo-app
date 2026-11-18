@@ -1,0 +1,88 @@
+
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'APP_VERSION',
+            defaultValue: '1.0',
+            description: 'Application version'
+        )
+
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run application tests?'
+        )
+
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['development', 'testing', 'production'],
+            description: 'Select deployment environment'
+        )
+    }
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo '--- Build Information ---'
+
+                echo "Application: ${APP_NAME}"
+                echo "Version: ${params.APP_VERSION}"
+                echo "Run Tests: ${params.RUN_TESTS}"
+                echo "Deployment Environment: ${params.DEPLOY_ENV}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+
+                echo "Built ${APP_NAME} version ${params.APP_VERSION}"
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression {
+                    return params.RUN_TESTS
+                }
+            }
+
+            steps {
+                echo 'Running application tests...'
+
+                sh 'test -f build/index.html'
+                sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+
+                echo 'All tests passed!'
+            }
+        }
+
+        stage('Deployment Information') {
+            steps {
+                echo "Selected deployment environment: ${params.DEPLOY_ENV}"
+                echo 'Actual deployment is not configured in this lesson.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Parameterized Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Parameterized Pipeline failed!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
