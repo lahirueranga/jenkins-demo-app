@@ -1,0 +1,46 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                sh 'whoami'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'test -f build/index.html'
+                echo 'Build output verified!'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'All stages completed successfully!'
+        }
+
+        failure {
+            echo 'Something went wrong!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
