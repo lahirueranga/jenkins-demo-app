@@ -19,7 +19,11 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './build.sh'
+                
+                        sh '''
+                            chmod +x build.sh
+                            ./build.sh
+                        '''
             }
         }
 
