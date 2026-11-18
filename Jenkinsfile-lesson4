@@ -1,0 +1,78 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+        APP_VERSION = '1.0'
+        APP_ENV = 'development'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo '--- Application Information ---'
+
+                echo "Application: ${APP_NAME}"
+                echo "Version: ${APP_VERSION}"
+                echo "Environment: ${APP_ENV}"
+
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo "Job Name: ${JOB_NAME}"
+                echo "Workspace: ${WORKSPACE}"
+
+                sh 'echo "Linux user: $(whoami)"'
+                sh 'echo "Build number from shell: $BUILD_NUMBER"'
+            }
+        }
+
+        stage('Build') {
+            environment {
+                BUILD_MODE = 'production'
+            }
+
+            steps {
+                echo '--- Build Stage ---'
+
+                echo "Application: ${APP_NAME}"
+                echo "Build mode: ${BUILD_MODE}"
+
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Test') {
+            environment {
+                APP_ENV = 'testing'
+                TEST_MODE = 'automated'
+            }
+
+            steps {
+                echo '--- Test Stage ---'
+
+                echo "Application: ${APP_NAME}"
+                echo "Environment: ${APP_ENV}"
+                echo "Test mode: ${TEST_MODE}"
+
+                sh 'test -f build/index.html'
+
+                echo 'Application test passed!'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully completed ${APP_NAME}"
+        }
+
+        failure {
+            echo 'Pipeline failed!'
+        }
+
+        always {
+            echo 'Environment variable lesson finished.'
+        }
+    }
+}
