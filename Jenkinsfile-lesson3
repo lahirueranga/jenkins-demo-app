@@ -1,0 +1,59 @@
+
+pipeline {
+    agent none
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo 'This stage does not allocate an agent'
+            }
+        }
+
+        stage('Build') {
+            agent any
+
+            steps {
+                echo 'Building application...'
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+
+                stash name: 'application-build',
+                      includes: 'build/**'
+            }
+        }
+
+        stage('Test') {
+            agent any
+
+            steps {
+                unstash 'application-build'
+
+                echo 'Testing application...'
+                sh 'test -f build/index.html'
+                sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+
+                echo 'All tests passed!'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Stage-level agent Pipeline successful!'
+        }
+
+        failure {
+            echo 'Stage-level agent Pipeline failed!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
