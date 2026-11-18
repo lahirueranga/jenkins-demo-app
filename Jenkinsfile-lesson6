@@ -1,0 +1,106 @@
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['development', 'testing', 'production'],
+            description: 'Select deployment environment'
+        )
+
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run application tests?'
+        )
+    }
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Environment: ${params.DEPLOY_ENV}"
+                echo "Run tests: ${params.RUN_TESTS}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+
+                echo 'Build completed!'
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression {
+                    return params.RUN_TESTS == true
+                }
+            }
+
+            steps {
+                echo 'Running tests...'
+
+                sh 'test -f build/index.html'
+                sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+
+                echo 'All tests passed!'
+            }
+        }
+
+        stage('Development Deployment') {
+            when {
+                environment name: 'DEPLOY_ENV',
+                          value: 'development'
+            }
+
+            steps {
+                echo 'Development deployment selected.'
+            }
+        }
+
+        stage('Testing Deployment') {
+            when {
+                environment name: 'DEPLOY_ENV',
+                          value: 'testing'
+            }
+
+            steps {
+                echo 'Testing deployment selected.'
+            }
+        }
+
+        stage('Production Deployment') {
+            when {
+                expression {
+                    return params.DEPLOY_ENV == 'production'
+                }
+            }
+
+            steps {
+                echo 'Production deployment selected.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Conditional Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Conditional Pipeline failed!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
