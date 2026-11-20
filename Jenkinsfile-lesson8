@@ -1,0 +1,76 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Build Number: ${BUILD_NUMBER}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Starting build stage...'
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+
+            post {
+                success {
+                    echo 'POST: Build stage succeeded.'
+                }
+                failure {
+                    echo 'POST: Build stage failed.'
+                }
+                always {
+                    echo 'POST: Build stage finished.'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Starting test stage...'
+                sh 'test -f build/index.html'
+                sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+                echo 'All application tests passed!'
+            }
+
+            post {
+                success {
+                    echo 'POST: Test stage succeeded.'
+                }
+                failure {
+                    echo 'POST: Test stage failed.'
+                }
+                always {
+                    echo 'POST: Test stage finished.'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE POST: Entire Pipeline succeeded.'
+        }
+        failure {
+            echo 'PIPELINE POST: Entire Pipeline failed.'
+        }
+        unstable {
+            echo 'PIPELINE POST: Pipeline is unstable.'
+        }
+        always {
+            echo 'PIPELINE POST: Pipeline execution finished.'
+        }
+        cleanup {
+            echo 'PIPELINE POST: Cleanup condition executed last.'
+        }
+    }
+}
