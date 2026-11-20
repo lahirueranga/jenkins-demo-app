@@ -1,0 +1,82 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}"
+
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Parallel Checks') {
+            parallel {
+                stage('Unit Tests') {
+                    steps {
+                        echo 'Running unit tests...'
+
+                        sh 'test -f build/index.html'
+
+                        echo 'Unit tests passed!'
+                    }
+                }
+
+                stage('Content Check') {
+                    steps {
+                        echo 'Checking application content...'
+
+                        sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+
+                        echo 'Content check passed!'
+                    }
+                }
+
+                stage('Quality Check') {
+                    steps {
+                        catchError(
+                            buildResult: 'UNSTABLE',
+                            stageResult: 'UNSTABLE'
+                        ) {
+                            echo 'Running optional quality check...'
+
+                            sh 'grep -q "TODO" build/index.html'
+                        }
+
+                        echo 'Quality check stage completed.'
+                    }
+                }
+            }
+        }
+
+        stage('Final Information') {
+            steps {
+                echo 'All parallel branches have completed.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline successful!'
+        }
+
+        unstable {
+            echo 'Pipeline completed with unstable checks.'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
