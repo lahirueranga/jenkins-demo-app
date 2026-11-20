@@ -57,7 +57,8 @@ pipeline {
 
         stage('Development Deployment') {
             when {
-                return params.DEPLOY_ENV == 'development'
+                environment name: 'DEPLOY_ENV',
+                          value: 'development'
             }
 
             steps {
