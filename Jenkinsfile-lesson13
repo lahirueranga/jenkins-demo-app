@@ -1,0 +1,75 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Checkout Information') {
+            steps {
+                echo "Application: ${APP_NAME}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo "Source: GitHub"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building application...'
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Parallel Validation') {
+            parallel {
+                stage('File Validation') {
+                    steps {
+                        echo 'Checking generated file...'
+                        sh 'test -f build/index.html'
+                        echo 'File validation passed.'
+                    }
+                }
+
+                stage('Content Validation') {
+                    steps {
+                        echo 'Checking application content...'
+                        sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+                        echo 'Content validation passed.'
+                    }
+                }
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'build/**',
+                    fingerprint: true
+
+                echo 'Artifacts archived.'
+            }
+        }
+
+        stage('Complete') {
+            steps {
+                echo 'All Pipeline stages completed.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
