@@ -1,0 +1,72 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}..."
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('CatchError Example') {
+            steps {
+                echo 'Starting optional quality check...'
+
+                catchError(
+                    buildResult: 'UNSTABLE',
+                    stageResult: 'UNSTABLE'
+                ) {
+                    sh 'grep -q "TODO" build/index.html'
+                }
+
+                echo 'Execution continued after catchError.'
+            }
+        }
+
+        stage('Try-Catch Example') {
+            steps {
+                script {
+                    try {
+                        echo 'Checking optional feature...'
+                        sh 'grep -q "OPTIONAL_FEATURE" build/index.html'
+
+                        echo 'Optional feature found!'
+                    } catch (Exception err) {
+                        echo 'Optional feature check failed.'
+                        echo "Handled error: ${err.message}"
+                    }
+                }
+
+                echo 'Execution continued after try/catch.'
+            }
+        }
+
+        stage('Final Information') {
+            steps {
+                echo 'All Pipeline stages have completed.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        unstable {
+            echo 'Pipeline completed with unstable checks.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
