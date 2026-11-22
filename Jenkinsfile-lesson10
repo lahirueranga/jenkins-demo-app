@@ -1,0 +1,85 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}..."
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Retry Example') {
+            steps {
+                echo 'Starting retry demonstration...'
+
+                sh 'rm -f .retry-attempt'
+
+                retry(3) {
+                    sh '''
+                        attempt=$(cat .retry-attempt 2>/dev/null || echo 0)
+                        attempt=$((attempt + 1))
+                        echo "$attempt" > .retry-attempt
+
+                        echo "Current attempt: $attempt"
+
+                        if [ "$attempt" -lt 3 ]; then
+                            echo "Temporary failure. Retrying..."
+                            exit 1
+                        fi
+
+                        echo "Operation succeeded!"
+                    '''
+                }
+
+                sh 'rm -f .retry-attempt'
+
+                echo 'Retry demonstration completed.'
+            }
+        }
+
+        stage('Timeout Example') {
+            steps {
+                echo 'Starting timeout demonstration...'
+
+                catchError(
+                    buildResult: 'UNSTABLE',
+                    stageResult: 'UNSTABLE'
+                ) {
+                    timeout(time: 3, unit: 'SECONDS') {
+                        sh 'sleep 10'
+                    }
+                }
+
+                echo 'Execution continued after timeout handling.'
+            }
+        }
+
+        stage('Final Information') {
+            steps {
+                echo 'All Pipeline stages have completed.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        unstable {
+            echo 'Pipeline completed with an unstable result.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
