@@ -41,7 +41,7 @@ pipeline {
 
                 // INTENTIONAL ERROR:
                 // This text does not exist in index.html.
-                sh 'grep -q "THIS_TEXT_DOES_NOT_EXIST" build/index.html'
+                sh 'grep -q "Build triggered" build/index.html'
 
                 echo 'Content validation passed.'
             }
