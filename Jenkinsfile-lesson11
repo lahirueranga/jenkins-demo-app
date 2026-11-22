@@ -1,0 +1,75 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}..."
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Credential Availability Check') {
+            steps {
+                echo 'Checking Jenkins credential availability...'
+
+                withCredentials([
+                    string(
+                        credentialsId: 'lesson11-demo-token',
+                        variable: 'DEMO_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+
+                        if [ -n "$DEMO_TOKEN" ]; then
+                            echo "Credential successfully loaded."
+                        else
+                            echo "Credential is missing."
+                            exit 1
+                        fi
+                    '''
+                }
+
+                echo 'Credential binding block completed.'
+            }
+        }
+
+        stage('Verify Credential Scope') {
+            steps {
+                sh '''
+                    if [ -z "$DEMO_TOKEN" ]; then
+                        echo "Credential is not available outside its binding block."
+                    else
+                        echo "Unexpected credential availability."
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
+        stage('Final Information') {
+            steps {
+                echo 'Credential security demonstration completed.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
