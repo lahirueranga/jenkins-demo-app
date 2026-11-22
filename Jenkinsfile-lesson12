@@ -1,0 +1,66 @@
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(
+            logRotator(
+                numToKeepStr: '10',
+                artifactNumToKeepStr: '5'
+            )
+        )
+    }
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}..."
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+
+                echo 'Checking generated artifact...'
+                sh 'ls -l build/index.html'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Testing application...'
+                sh 'test -f build/index.html'
+                sh 'grep -q "Hello from GitHub and Jenkins!" build/index.html'
+                echo 'All tests passed!'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Archiving build artifacts...'
+
+            archiveArtifacts(
+                artifacts: 'build/**',
+                fingerprint: true
+            )
+
+            echo 'Build artifacts archived successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Successful-build artifacts will not be archived.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+
+        cleanup {
+            echo 'Cleaning Jenkins workspace...'
+            cleanWs()
+            echo 'Workspace cleanup completed.'
+        }
+    }
+}
