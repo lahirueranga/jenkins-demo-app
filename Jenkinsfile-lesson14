@@ -1,0 +1,73 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-demo-app'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building ${APP_NAME}..."
+                sh 'chmod +x build.sh'
+                sh './build.sh'
+            }
+        }
+
+        stage('Diagnostic Information') {
+            steps {
+                echo 'Checking Jenkins execution environment...'
+
+                sh '''
+                    echo "Current user:"
+                    whoami
+
+                    echo "Current workspace:"
+                    pwd
+
+                    echo "Workspace contents:"
+                    ls -la
+
+                    echo "Build directory:"
+                    ls -la build/
+                '''
+            }
+        }
+
+        stage('Content Validation') {
+            steps {
+                echo 'Checking generated application content...'
+
+                // INTENTIONAL ERROR:
+                // This text does not exist in index.html.
+                sh 'grep -q "THIS_TEXT_DOES_NOT_EXIST" build/index.html'
+
+                echo 'Content validation passed.'
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'build/**',
+                    fingerprint: true
+
+                echo 'Artifacts archived.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Investigate the failed stage and console output.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}
